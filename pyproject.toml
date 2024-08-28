@@ -7,7 +7,8 @@ name = "ecko_cli"
 authors = [
     {name = "Regi E",email = "regi@bynine.io"}
 ]
-keywords = ["image training", "cli", "ai", "ml", "machine learning", "artificial intelligence"]
+keywords = ["cli", "ai", "generative-ai", "dataset", "image", "training", "image-processing", "image-classificatioon", 
+"onnx", "torch", "torchvision", "transformers", "timm", "huggingface", "florence-2"]
 dynamic = ["version"]
 description = "CLI tool that easily converts a directory of images into a dataset for training generative ai models"
 readme = "README.md"

@@ -92,7 +92,7 @@ def load_models():
 
 
 def analyze_image(
-    image_path: str, task: int, progress: Progress, is_object
+    image_path: str, task: int, progress: Progress, trigger, is_object
 ) -> Optional[Dict[str, str]]:
     try:
         model, processor, ort_session = load_models()
@@ -152,7 +152,8 @@ def analyze_image(
         #     "florence_description": florence_description,
         #     "wd14_tags": ", ".join(wd14_tags)
         # }
-        result = f"{florence_description} {', '.join(wd14_tags)}"
+        trigger_word: str = "{0} ".format(trigger) if trigger else None
+        result = f"{trigger_word}{florence_description} {', '.join(wd14_tags)}"
         delete_training_image(image_path)
 
         progress.update(task, advance=1)

@@ -47,7 +47,7 @@ make sure to create a virtual environment)
 $ ecko-cli [OPTIONS] [COMMAND] [ARGS]
 
 Options:
-    process-images DIRECTORY BATCH_IMAGE_NAME [--is_object True/False] [--padding PADDING]  
+    process-images DIRECTORY BATCH_IMAGE_NAME [--trigger WORD] [--is_object True/False] [--padding PADDING]  
     Process images in a directory and generate captions.
     
     create-jsonl DIRECTORY OUTPUT_NAME                 Create a JSONL file from images in a directory.
@@ -174,6 +174,7 @@ def create_jsonl(
 def process_directory(
     directory_path: str,
     name: str,
+    trigger: str = None,
     padding: int = DEFAULT_PADDING,
     is_object: bool = False,
 ) -> None:
@@ -213,7 +214,7 @@ def process_directory(
 
             # Generate and save the caption
             caption_image = f"{output_dir}/{name}_{index:0{padding}d}_{image_sizes[2]}{Path(filename).suffix}"
-            caption = analyze_image(caption_image, task, progress, is_object)
+            caption = analyze_image(caption_image, task, progress, trigger, is_object)
             if caption:
                 if generate_caption_file(output_caption_path, caption):
                     results.append(
