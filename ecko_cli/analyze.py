@@ -152,7 +152,7 @@ def analyze_image(
         #     "florence_description": florence_description,
         #     "wd14_tags": ", ".join(wd14_tags)
         # }
-        trigger_word: str = "{0} ".format(trigger) if trigger else None
+        trigger_word: str = "{0} ".format(trigger) if trigger else ""
         result = f"{trigger_word}{florence_description} {', '.join(wd14_tags)}"
         delete_training_image(image_path)
 

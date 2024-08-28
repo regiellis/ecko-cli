@@ -1,7 +1,6 @@
 from . import __version__
 
 import os
-import io
 import json
 import typer
 from pathlib import Path
@@ -208,12 +207,12 @@ def process_directory(
             )
 
             # Process and save the image
-            image_sizes = [1024, 768, 672, 512]
+            image_sizes = [1024, 672]
             images = ImageProcessor()
             images.process_image(image_sizes, input_path, output_image_path, output_dir)
 
             # Generate and save the caption
-            caption_image = f"{output_dir}/{name}_{index:0{padding}d}_{image_sizes[2]}{Path(filename).suffix}"
+            caption_image = f"{output_dir}/{name}_{index:0{padding}d}_{image_sizes[1]}{Path(filename).suffix}"
             caption = analyze_image(caption_image, task, progress, trigger, is_object)
             if caption:
                 if generate_caption_file(output_caption_path, caption):
