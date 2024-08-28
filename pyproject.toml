@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ecko_cli"
+authors = [
+    {name = "Regi E",email = "regi@bynine.io"}
+]
+keywords = ["image training", "cli", "ai", "ml", "machine learning", "artificial intelligence"]
+dynamic = ["version"]
+description = "CLI tool that easily converts a directory of images into a dataset for training generative ai models"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+classifiers = [
+   "Programming Language :: Python :: 3.11",
+   "License :: OSI Approved :: Apache Software License",
+   "Operating System :: OS Independent"
+]
+dependencies = [
+    "typer",
+    "rich",
+    "shellingham",
+    "python-dotenv",
+    "onnxruntime-gpu",
+    "numpy",
+    "pandas",
+    "torch",
+    "torchvision",
+    "pillow",
+    "einops",
+    "opencv-python",
+    "transformers",
+    "timm",
+    "huggingface_hub[cli]"
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+
+[tool.hatch.version]
+path = "ecko_cli/__version__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ecko_cli"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/ecko_cli",
+]
+
+[tool.hatch.build]
+include = [
+    "ecko-cli/models/*",
+]
+
+[tool.hatch.requirements.flash-attn]
+type = "pip"
+install-command = ["pip", "install", "--no-build-isolation", "flash-attn"]
+
+
+[project.urls]
+Repository = "https://github.com/regiellis/ecko-cli"
+Documentation = "https://github.com/regiellis/ecko-cli/blob/main/README.md"
+"Bug Tracker" = "https://github.com/regiellis/ecko-cli/issues"
+
+[project.scripts]
+ecko = "ecko_cli.__main__:main"
+

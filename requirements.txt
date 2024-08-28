@@ -1,0 +1,16 @@
+"typer",
+"rich",
+"shellingham",
+"python-dotenv",
+"onnxruntime-gpu",
+"numpy",
+"pandas",
+"torch",
+"pillow",
+"einops",
+"torchvision",
+"opencv-python"
+"flash-attn --no-build-isolation"
+"timm"
+"transformers"
+"huggingface_hub[cli]"
