@@ -187,6 +187,11 @@ def process_directory(
         is_object (bool): Whether the images contain objects or scenes.
         padding (int): Number of digits for output file numbering.
     """
+    
+    #print(f"Processing directory: {directory_path}")
+    #output_dir = create_output_directory(directory_path)
+    #print(f"Output directory: {output_dir}")
+    
     output_dir = create_output_directory(directory_path)
     image_files = [
         f
