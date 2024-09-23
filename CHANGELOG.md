@@ -2,7 +2,7 @@
 
 ## All notable changes to this project will be documented in this file
 
-### [1.0.0] - 2024-08-27
+### [1.1.0] - 2024-09-23
 
 - **Images Features**: Now generates two sets of images at 512, 1024. training is done on a 672x672 image.
 
