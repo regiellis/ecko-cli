@@ -48,7 +48,7 @@ You have a couple of options for installing/running the tool:
 ### Install [pipx](https://pipxproject.github.io/pipx/installation/), then run the tool with the following command
 
 ```bash
-pipx install .
+pipx install ecko-cli
 ```
 
 ### Alternatively, you can install using `pip`
