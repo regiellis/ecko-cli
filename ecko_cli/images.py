@@ -33,7 +33,7 @@ class ImageProcessor:
         min_dimension = min(img.shape[1:])
 
         # Crop image
-        img_cropped = self._center_crop(img, min_dimension)
+        img_cropped = self._adaptive_crop(img, min_dimension)
 
         # Determine if we're upscaling or downscaling
         current_size = img_cropped.shape[-1]  # Assuming square image after cropping
@@ -60,9 +60,22 @@ class ImageProcessor:
         # Save the processed image
         final_output_path = f"{output_dir}/{output_path}"
         write_png(img_resized.cpu(), final_output_path)
+        
+    def _adaptive_crop(self, img, min_dimension):
+        height, width = img.shape[1:]
+        
+        if height > width * 1.1:  # Height is significantly more than width
+            # Crop from top left
+            return img[:, :min_dimension, :min_dimension]
+        else:
+            # Crop from center
+            center = [dim // 2 for dim in img.shape[1:]]
+            crop_start = [c - min_dimension // 2 for c in center]
+            crop_end = [c + min_dimension // 2 for c in center]
+            return img[:, crop_start[0] : crop_end[0], crop_start[1] : crop_end[1]]
 
-    def _center_crop(self, img, min_dimension):
-        center = [dim // 2 for dim in img.shape[1:]]
-        crop_start = [c - min_dimension // 2 for c in center]
-        crop_end = [c + min_dimension // 2 for c in center]
-        return img[:, crop_start[0] : crop_end[0], crop_start[1] : crop_end[1]]
+    # def _center_crop(self, img, min_dimension):
+    #     center = [dim // 2 for dim in img.shape[1:]]
+    #     crop_start = [c - min_dimension // 2 for c in center]
+    #     crop_end = [c + min_dimension // 2 for c in center]
+    #     return img[:, crop_start[0] : crop_end[0], crop_start[1] : crop_end[1]]
