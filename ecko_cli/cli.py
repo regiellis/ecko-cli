@@ -187,11 +187,11 @@ def process_directory(
         is_object (bool): Whether the images contain objects or scenes.
         padding (int): Number of digits for output file numbering.
     """
-    
-    #print(f"Processing directory: {directory_path}")
-    #output_dir = create_output_directory(directory_path)
-    #print(f"Output directory: {output_dir}")
-    
+
+    # print(f"Processing directory: {directory_path}")
+    # output_dir = create_output_directory(directory_path)
+    # print(f"Output directory: {output_dir}")
+
     output_dir = create_output_directory(directory_path)
     image_files = [
         f
@@ -219,7 +219,9 @@ def process_directory(
 
             # Generate and save the caption
             caption_image = f"{output_dir}/{name}_{index:0{padding}d}_{image_sizes[1]}{Path(filename).suffix}"
-            caption = analyze_image(caption_image, task, progress, trigger, is_anime, is_object)
+            caption = analyze_image(
+                caption_image, task, progress, trigger, is_anime, is_object
+            )
             if caption:
                 if generate_caption_file(output_caption_path, caption):
                     results.append(
