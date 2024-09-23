@@ -1,9 +1,6 @@
 import torch
-import torchvision.transforms as T
 import torch.nn.functional as F
 from torchvision.io import read_image, write_png
-from torch.nn.functional import interpolate
-from torchvision.transforms.functional import InterpolationMode
 from pathlib import Path
 
 

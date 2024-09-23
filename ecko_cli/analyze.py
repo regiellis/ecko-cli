@@ -1,7 +1,7 @@
 import os
 from functools import lru_cache
 from transformers import AutoModelForCausalLM, AutoProcessor
-from typing import Optional, Dict, Final
+from typing import Optional, Dict
 from PIL import Image
 
 import torch
@@ -19,27 +19,11 @@ from .helpers import (
     smart_resize,
 )
 
-KAOMOJIS: Final = [
-    "0_0",
-    "(o)_(o)",
-    "+_+",
-    "+_-",
-    "._.",
-    "<o>_<o>",
-    "<|>_<|>",
-    "=_=",
-    ">_<",
-    "3_3",
-    "6_9",
-    ">_o",
-    "@_@",
-    "^_^",
-    "o_o",
-    "u_u",
-    "x_x",
-    "|_|",
-    "||_||",
-]
+
+# Suppress the FutureWarning
+warnings.filterwarnings(
+    "ignore", category=FutureWarning, module="transformers.tokenization_utils_base"
+)
 
 
 def delete_training_image(training_image: str) -> None:
@@ -50,12 +34,6 @@ def delete_training_image(training_image: str) -> None:
         os.remove(training_image)
     except FileNotFoundError:
         feedback_message(f"File not found: {training_image}", "warning")
-
-
-# Suppress the FutureWarning
-warnings.filterwarnings(
-    "ignore", category=FutureWarning, module="transformers.tokenization_utils_base"
-)
 
 
 @lru_cache(maxsize=None)
@@ -92,7 +70,7 @@ def load_models():
 
 
 def analyze_image(
-    image_path: str, task: int, progress: Progress, trigger, is_object
+    image_path: str, task: int, progress: Progress, trigger, is_anime, is_object
 ) -> Optional[Dict[str, str]]:
     try:
         model, processor, ort_session = load_models()
@@ -126,14 +104,19 @@ def analyze_image(
 
         # Load tags from CSV
         models_dir = get_models_dir()
-        csv_path = os.path.join(models_dir, "selected_tags.csv")
+        if is_anime:
+            csv_path = os.path.join(models_dir, "anime.csv")
+        else:
+            csv_path = os.path.join(models_dir, "realistic.csv")
+
+        # csv_path = os.path.join(models_dir, "selected_tags.csv")
         df_tags = pd.read_csv(csv_path)
 
         # Get probabilities and create tag-confidence pairs
         tag_confidence = list(zip(df_tags["name"], confidence[0]))
 
         # Filter and sort tags
-        threshold = 0.3  # Adjust this threshold as needed
+        threshold = 0.65  # Adjust this threshold as needed
         filtered_tags = [
             (tag, conf)
             for tag, conf in tag_confidence
@@ -142,7 +125,8 @@ def analyze_image(
         ]
 
         # TODO: Filter out tags that are in the KAOMOJIS list
-        filtered_tags.sort(key=lambda x: x[1], reverse=True)
+        if not is_anime:
+            filtered_tags.sort(key=lambda x: x[1], reverse=True)
 
         # Extract all tags for output without limiting
         wd14_tags = [tag for tag, _ in filtered_tags]  # No limit on tags
@@ -221,5 +205,6 @@ def generate_florence_description(image, model, processor, is_object=False):
     except Exception as e:
         import traceback
 
+        print(e)
         print(traceback.format_exc())
         return "Error generating description"

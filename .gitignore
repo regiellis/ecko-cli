@@ -1,6 +1,13 @@
-.env
+.bash_history
+.local/
+.vscode
+.settings.json
+.bash_history
 sample_images/
 *.onnx
+.zcompdump
+.zsh_history
+.zshrc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -165,3 +172,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 .aider*
+

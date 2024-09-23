@@ -102,7 +102,7 @@ def create_output_directory(base_dir: str) -> str:
 
 
 def generate_caption_file(caption_path: str, caption: str) -> bool:
-    sizes = [1024]
+    sizes = [512, 1024]
     # Write the caption to the caption file for all images sizes (1024, 768, 512)
     # should be in the format: "caption_path_[size].txt"  - may bring this back
     try:
@@ -112,9 +112,7 @@ def generate_caption_file(caption_path: str, caption: str) -> bool:
                 file.write(caption)
         return True
     except Exception as e:
-        feedback_message(
-            f"Error writing caption to file: {str(e)}", type="exception"
-        )
+        feedback_message(f"Error writing caption to file: {str(e)}", type="exception")
         return False
 
 

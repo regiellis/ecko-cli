@@ -175,6 +175,7 @@ def process_directory(
     name: str,
     trigger: str = None,
     padding: int = DEFAULT_PADDING,
+    is_anime: bool = False,
     is_object: bool = False,
 ) -> None:
     """
@@ -207,13 +208,13 @@ def process_directory(
             )
 
             # Process and save the image
-            image_sizes = [1024, 672]
+            image_sizes = [1024, 672, 512]
             images = ImageProcessor()
             images.process_image(image_sizes, input_path, output_image_path, output_dir)
 
             # Generate and save the caption
             caption_image = f"{output_dir}/{name}_{index:0{padding}d}_{image_sizes[1]}{Path(filename).suffix}"
-            caption = analyze_image(caption_image, task, progress, trigger, is_object)
+            caption = analyze_image(caption_image, task, progress, trigger, is_anime, is_object)
             if caption:
                 if generate_caption_file(output_caption_path, caption):
                     results.append(
@@ -239,5 +240,5 @@ def process_directory(
                         "status": "Failed to generate caption",
                     }
                 )
-
+    create_jsonl_from_images(output_dir)
     display_results_table(results)
