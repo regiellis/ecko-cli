@@ -2,9 +2,10 @@ from . import __version__
 
 import os
 import json
+import csv
 import typer
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 
 from .helpers import (
     create_output_directory,
@@ -33,7 +34,7 @@ images in a directory, generating captions, and saving them as text files.
 Additionally, it provides functionalities to create a JSONL file from images
 in the directory you specify. Images will be captioned using the Microsoft
 Florence-2-large model and the ONNX Runtime engine. Images are resized to
-multiple sizes for better captioning results. [1024, 768, 672, 512]. The
+multiple sizes for better captioning results. [1024, 672, 512]. The
 WD14 model is used for captioning all images based on a modified version of
 the selected tags it was trained on.
 
@@ -70,13 +71,20 @@ console = Console()
 DEFAULT_PADDING = os.getenv("DEFAULT_PADDING", 4)
 
 
-def create_jsonl_from_images(directory: str, output_name: str = "dataset") -> None:
+def create_dataset_from_images(
+    directory: str,
+    output_name: str,
+    format: str,
+    relative_paths: bool = False
+) -> None:
     """
-    Create a JSONL file from images in a directory, reading captions from corresponding text files.
+    Create a dataset file from images in a directory, reading captions from corresponding text files.
 
     Args:
     directory (str): Path to the directory containing images and caption text files.
-    output_name (str): Name for the output JSONL file (without extension).
+    output_name (str): Name for the output file (without extension).
+    format (str): Output format, either "jsonl", "hf_json", "csv", or "json".
+    relative_paths (bool): Whether to use relative paths for images in the output.
 
     Returns:
     None
@@ -87,43 +95,57 @@ def create_jsonl_from_images(directory: str, output_name: str = "dataset") -> No
     # List of common image file extensions
     image_extensions: List[str] = [".jpg", ".jpeg", ".png", ".gif"]
 
-    # Construct the full path for the output JSONL file
-    jsonl_filename = f"{output_name}.jsonl"
-    jsonl_path = os.path.join(directory, jsonl_filename)
+    output_filename = f"{output_name}.{format if format != 'hf_json' else 'json'}"
+    output_path = os.path.join(directory, output_filename)
 
-    # Open the JSONL file for writing
-    with open(jsonl_path, "w") as jsonl_file:
-        # Iterate through all files in the directory
-        for filename in os.listdir(directory):
-            file_path = os.path.join(directory, filename)
+    dataset: List[Dict[str, Any]] = []
 
-            # Check if the file is an image
-            if (
-                os.path.isfile(file_path)
-                and Path(file_path).suffix.lower() in image_extensions
-            ):
-                # Construct the path for the corresponding text file
-                text_file_path = os.path.splitext(file_path)[0] + ".txt"
 
-                # Read the caption from the text file if it exists
-                if os.path.exists(text_file_path):
-                    with open(text_file_path, "r") as text_file:
-                        caption = text_file.read().strip()
-                else:
-                    caption = "No caption available"
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
 
-                # Create a dictionary with the required information
-                image_data: Dict[str, Any] = {
-                    "image": file_path,
-                    "text": caption,
-                    "mask_path": None,
+        # Check if the file is an image
+        if os.path.isfile(file_path) and Path(file_path).suffix.lower() in image_extensions:
+            text_file_path = os.path.splitext(file_path)[0] + ".txt"
+
+
+            if os.path.exists(text_file_path):
+                with open(text_file_path, "r") as text_file:
+                    caption = text_file.read().strip()
+            else:
+                caption = "No caption available"
+
+            image_data: Dict[str, Any] = {
+                "image": os.path.relpath(file_path, directory) if relative_paths else file_path,
+                "text": caption
+            }
+
+            if format == "jsonl":
+                image_data["mask_path"] = None
+
+            dataset.append(image_data)
+
+    with open(output_path, "w", newline='') as output_file:
+        if format == "jsonl":
+            for item in dataset:
+                json.dump(item, output_file)
+                output_file.write("\n")
+        elif format == "hf_json":
+            json.dump({
+                "data": dataset,
+                "meta": {
+                    "description": "Image dataset created from local directory",
+                    "format": "image"
                 }
+            }, output_file, indent=2)
+        elif format == "json":
+            json.dump(dataset, output_file, indent=2)
+        elif format == "csv":
+            writer = csv.DictWriter(output_file, fieldnames=["image", "text"])
+            writer.writeheader()
+            writer.writerows(dataset)
 
-                # Write the JSON object to the file, followed by a newline
-                json.dump(image_data, jsonl_file)
-                jsonl_file.write("\n")
-
-    print(f"JSONL file created: {jsonl_path}")
+    print(f"Dataset file created: {output_path}")
 
 
 def display_results_table(results: List[Dict[str, str]]) -> None:
@@ -149,22 +171,34 @@ def display_results_table(results: List[Dict[str, str]]) -> None:
 
 
 @ecko_cli.command(
-    "create-jsonl", help="Create a JSONL file from images in a directory."
+    "create-dataset", help="Create a dataset file from images in a directory."
 )
-def create_jsonl(
+def create_dataset(
     directory: str = typer.Argument(
         ..., help="Path to the directory containing images."
     ),
-    output_name: str = typer.Argument(..., help="Name for the output JSONL file."),
+    output_name: str = typer.Argument("dataset", help="Name for the output dataset file."),
+    format: str = typer.Option(
+        "jsonl", help="Output format: jsonl, hf_json, csv, or json."
+    ),
+    relative_paths: bool = typer.Option(
+        False, help="Use relative paths for images in the output."
+    ),
 ):
     """
-    Create a JSONL file from images in a directory, reading captions from corresponding text files.
+    Create a dataset file from images in a directory, reading captions from corresponding text files.
 
     Args:
         directory (str): Path to the directory containing images and caption text files.
-        output_name (str): Name for the output JSONL file (without extension).
+        output_name (str): Name for the output dataset file (without extension).
+        format (str): Output format, either "jsonl", "hf_json", "csv", or "json".
+        relative_paths (bool): Whether to use relative paths for images in the output.
     """
-    create_jsonl_from_images(directory, output_name)
+    valid_formats = ["jsonl", "hf_json", "csv", "json"]
+    if format not in valid_formats:
+        raise ValueError(f"Invalid format. Choose from: {', '.join(valid_formats)}")
+    
+    create_dataset_from_images(directory, output_name, format, relative_paths)
 
 
 @ecko_cli.command(
@@ -247,5 +281,5 @@ def process_directory(
                         "status": "Failed to generate caption",
                     }
                 )
-    create_jsonl_from_images(output_dir)
+    create_dataset_from_images(output_dir, "dataset", "jsonl")
     display_results_table(results)
