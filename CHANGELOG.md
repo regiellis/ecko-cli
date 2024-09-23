@@ -4,4 +4,8 @@
 
 ### [1.0.0] - 2024-08-27
 
+- **Images Features**: Now generates two sets of images at 512, 1024. training is done on a 672x672 image.
+
+### [1.0.0] - 2024-08-27
+
 - **Initial Release**: Established the initial codebase for the project, laying the foundation for future development and enhancements.
