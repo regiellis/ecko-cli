@@ -60,10 +60,10 @@ class ImageProcessor:
         # Save the processed image
         final_output_path = f"{output_dir}/{output_path}"
         write_png(img_resized.cpu(), final_output_path)
-        
+
     def _adaptive_crop(self, img, min_dimension):
         height, width = img.shape[1:]
-        
+
         if height > width * 1.1:  # Height is significantly more than width
             # Crop from top left
             return img[:, :min_dimension, :min_dimension]

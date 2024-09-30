@@ -11,13 +11,22 @@
 > [!IMPORTANT]
 > This tool makes use of the `flash-attention` library, which has known to be problematic to install based on PyTorch > and CUDA versions. You may
 > need to install the dependencies manually if you encounter issues. The way to install flash-attention is to clone >  the repo and install the package with pip. This is the recommended way to install the package. You can also
-> install the package with pipx, but you will need to clone the repo first
+> install the package with pip, but you will need to clone the repo first
 >
 >```bash
 > git clone https://github.com/Dao-AILab/flash-attention.git
 > cd flash-attention
 > pip install flash_attn --no-build-isolation
 > pip install timm
+>```
+> Install via pipx
+> ```bash
+> pipx inject ecko-cli flash_attn
+> pipx inject ecko-cli timm
+>```
+> Install via the CLI
+> ```bash
+> ecko tools install-flash-attention
 >```
 >
 

@@ -5,7 +5,8 @@ import json
 import csv
 import typer
 from pathlib import Path
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any
+import subprocess
 
 from .helpers import (
     create_output_directory,
@@ -42,12 +43,12 @@ the selected tags it was trained on.
 Usage:
 $ pipx install ecko-cli (recommended)
 $ pipx install . (if you want to install it globally)
-$ pip install -e . (if you want to install it locally and poke around, 
+$ pip install -e . (if you want to install it locally and poke around,
 make sure to create a virtual environment)
 $ ecko-cli [OPTIONS] [COMMAND] [ARGS]
 
 Options:
-    process-images DIRECTORY BATCH_IMAGE_NAME [--trigger WORD] [--is_object True/False] [--padding PADDING]  
+    process-images DIRECTORY BATCH_IMAGE_NAME [--trigger WORD] [--is_object] [--padding PADDING]
     Process images in a directory and generate captions.
     
     create-jsonl DIRECTORY OUTPUT_NAME                 Create a JSONL file from images in a directory.
@@ -66,16 +67,16 @@ __all_ = ["ecko_cli"]
 __version__ = __version__
 
 ecko_cli = typer.Typer()
+tools_cli = typer.Typer()
 console = Console()
 
 DEFAULT_PADDING = os.getenv("DEFAULT_PADDING", 4)
 
+ecko_cli.add_typer(tools_cli, name="tools", help="Tools for Ecko CLI")
+
 
 def create_dataset_from_images(
-    directory: str,
-    output_name: str,
-    format: str,
-    relative_paths: bool = False
+    directory: str, output_name: str, format: str, relative_paths: bool = False
 ) -> None:
     """
     Create a dataset file from images in a directory, reading captions from corresponding text files.
@@ -100,14 +101,15 @@ def create_dataset_from_images(
 
     dataset: List[Dict[str, Any]] = []
 
-
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
 
         # Check if the file is an image
-        if os.path.isfile(file_path) and Path(file_path).suffix.lower() in image_extensions:
+        if (
+            os.path.isfile(file_path)
+            and Path(file_path).suffix.lower() in image_extensions
+        ):
             text_file_path = os.path.splitext(file_path)[0] + ".txt"
-
 
             if os.path.exists(text_file_path):
                 with open(text_file_path, "r") as text_file:
@@ -116,8 +118,12 @@ def create_dataset_from_images(
                 caption = "No caption available"
 
             image_data: Dict[str, Any] = {
-                "image": os.path.relpath(file_path, directory) if relative_paths else file_path,
-                "text": caption
+                "image": (
+                    os.path.relpath(file_path, directory)
+                    if relative_paths
+                    else file_path
+                ),
+                "text": caption,
             }
 
             if format == "jsonl":
@@ -125,19 +131,23 @@ def create_dataset_from_images(
 
             dataset.append(image_data)
 
-    with open(output_path, "w", newline='') as output_file:
+    with open(output_path, "w", newline="") as output_file:
         if format == "jsonl":
             for item in dataset:
                 json.dump(item, output_file)
                 output_file.write("\n")
         elif format == "hf_json":
-            json.dump({
-                "data": dataset,
-                "meta": {
-                    "description": "Image dataset created from local directory",
-                    "format": "image"
-                }
-            }, output_file, indent=2)
+            json.dump(
+                {
+                    "data": dataset,
+                    "meta": {
+                        "description": "Image dataset created from local directory",
+                        "format": "image",
+                    },
+                },
+                output_file,
+                indent=2,
+            )
         elif format == "json":
             json.dump(dataset, output_file, indent=2)
         elif format == "csv":
@@ -171,13 +181,17 @@ def display_results_table(results: List[Dict[str, str]]) -> None:
 
 
 @ecko_cli.command(
-    "create-dataset", help="Create a dataset file from images in a directory."
+    "create-dataset",
+    help="Create a dataset file from images in a directory.",
+    no_args_is_help=True,
 )
 def create_dataset(
     directory: str = typer.Argument(
         ..., help="Path to the directory containing images."
     ),
-    output_name: str = typer.Argument("dataset", help="Name for the output dataset file."),
+    output_name: str = typer.Argument(
+        "dataset", help="Name for the output dataset file."
+    ),
     format: str = typer.Option(
         "jsonl", help="Output format: jsonl, hf_json, csv, or json."
     ),
@@ -197,12 +211,14 @@ def create_dataset(
     valid_formats = ["jsonl", "hf_json", "csv", "json"]
     if format not in valid_formats:
         raise ValueError(f"Invalid format. Choose from: {', '.join(valid_formats)}")
-    
+
     create_dataset_from_images(directory, output_name, format, relative_paths)
 
 
 @ecko_cli.command(
-    "process-images", help="Process images in a directory and generate captions."
+    "process-images",
+    help="Process images in a directory and generate captions.",
+    no_args_is_help=True,
 )
 def process_directory(
     directory_path: str,
@@ -211,6 +227,7 @@ def process_directory(
     padding: int = DEFAULT_PADDING,
     is_anime: bool = False,
     is_object: bool = False,
+    is_style: bool = False,
 ) -> None:
     """
     Process all images in a directory, generate captions, and save them as text files.
@@ -218,7 +235,9 @@ def process_directory(
     Args:
         directory_path (str): Path to the directory containing images.
         name (str): Base name for output files.
-        is_object (bool): Whether the images contain objects or scenes.
+        is_object (bool): Captions based on object detection.
+        is_anime (bool): Captions based on anime detection.
+        is_style (bool): Captions based on style detection.
         padding (int): Number of digits for output file numbering.
     """
 
@@ -247,14 +266,14 @@ def process_directory(
             )
 
             # Process and save the image
-            image_sizes = [1024, 672, 512]
+            image_sizes = [1024, 672]
             images = ImageProcessor()
             images.process_image(image_sizes, input_path, output_image_path, output_dir)
 
             # Generate and save the caption
             caption_image = f"{output_dir}/{name}_{index:0{padding}d}_{image_sizes[1]}{Path(filename).suffix}"
             caption = analyze_image(
-                caption_image, task, progress, trigger, is_anime, is_object
+                caption_image, task, progress, trigger, is_anime, is_object, is_style
             )
             if caption:
                 if generate_caption_file(output_caption_path, caption):
@@ -283,3 +302,14 @@ def process_directory(
                 )
     create_dataset_from_images(output_dir, "dataset", "jsonl")
     display_results_table(results)
+
+
+@tools_cli.command()
+def install_flash_attention():
+    """
+    Install flash-attention package
+    """
+    subprocess.run(
+        "pip install flash-attn --no-build-isolation",
+        shell=True,
+    )

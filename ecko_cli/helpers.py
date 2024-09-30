@@ -102,7 +102,7 @@ def create_output_directory(base_dir: str) -> str:
 
 
 def generate_caption_file(caption_path: str, caption: str) -> bool:
-    sizes = [512, 1024]
+    sizes = [1024]
     # Write the caption to the caption file for all images sizes (1024, 768, 512)
     # should be in the format: "caption_path_[size].txt"  - may bring this back
     try:

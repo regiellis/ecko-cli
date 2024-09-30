@@ -11,6 +11,7 @@ import pandas as pd
 import warnings
 
 from rich.progress import Progress
+from enum import Enum
 
 from .helpers import (
     feedback_message,
@@ -19,6 +20,7 @@ from .helpers import (
     smart_resize,
 )
 
+CAPTION_MODEL = "microsoft/Florence-2-large"
 
 # Suppress the FutureWarning
 warnings.filterwarnings(
@@ -42,13 +44,11 @@ def load_models():
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
     model = AutoModelForCausalLM.from_pretrained(
-        "microsoft/Florence-2-large",
+        CAPTION_MODEL,
         torch_dtype=torch_dtype,
         trust_remote_code=True,
     ).to(device)
-    processor = AutoProcessor.from_pretrained(
-        "microsoft/Florence-2-large", trust_remote_code=True
-    )
+    processor = AutoProcessor.from_pretrained(CAPTION_MODEL, trust_remote_code=True)
 
     models_dir = get_models_dir()
     model_path = os.path.join(models_dir, "model.onnx")
@@ -70,7 +70,13 @@ def load_models():
 
 
 def analyze_image(
-    image_path: str, task: int, progress: Progress, trigger, is_anime, is_object
+    image_path: str,
+    task: int,
+    progress: Progress,
+    trigger,
+    is_anime,
+    is_object,
+    is_style,
 ) -> Optional[Dict[str, str]]:
     try:
         model, processor, ort_session = load_models()
@@ -80,7 +86,7 @@ def analyze_image(
 
         # Generate image description using Florence-2
         florence_description = generate_florence_description(
-            image, model, processor, is_object
+            image, model, processor, is_object, is_anime, is_style
         )
 
         # WD14 tagging
@@ -116,7 +122,7 @@ def analyze_image(
         tag_confidence = list(zip(df_tags["name"], confidence[0]))
 
         # Filter and sort tags
-        threshold = 0.65  # Adjust this threshold as needed
+        threshold = 0.55  # Adjust this threshold as needed
         filtered_tags = [
             (tag, conf)
             for tag, conf in tag_confidence
@@ -150,25 +156,49 @@ def analyze_image(
         return None
 
 
-def generate_florence_description(image, model, processor, is_object=False):
+class CaptionType(Enum):
+    DETAILED = "<MORE_DETAILED_CAPTION>"
+    OBJECT_DETECTION = "<OD>"
+    GENERATE_TAGS = "<GENERATE_TAGS>"
+    CAPTION = "<CAPTION>"
+
+
+def get_task_prompt(is_object: bool, is_anime: bool, is_style: bool) -> str:
+    if is_object:
+        return CaptionType.OBJECT_DETECTION.value
+    elif is_anime:
+        return CaptionType.GENERATE_TAGS.value
+    elif is_style:
+        return CaptionType.CAPTION.value
+    else:
+        return CaptionType.DETAILED.value  # Default option
+
+
+def generate_florence_description(
+    image, model, processor, is_anime=False, is_object=False, is_style=False
+):
     try:
         device = next(model.parameters()).device
         model_dtype = next(model.parameters()).dtype
 
-        # Set the task token as the only input
-        if is_object:
-            task_prompt = "<OD>"
-        else:
-            task_prompt = "<MORE_DETAILED_CAPTION>"
+        task_prompt = get_task_prompt(is_object, is_anime, is_style)
 
-        # Process the inputs with only the task token
+        # Add style-specific instructions if needed
+        if is_style:
+            task_prompt + (
+                " Describe the artistic style, visual elements, "
+                "and aesthetic qualities of this image. Focus on techniques, color palette, "
+                "composition, and overall artistic approach."
+            )
+
+        # Process the inputs with the task token (and additional instructions if any)
         inputs = processor(text=task_prompt, images=image, return_tensors="pt").to(
             device
         )
 
         # Validate inputs
         if not inputs or "input_ids" not in inputs or "pixel_values" not in inputs:
-            return "Error generating description"
+            return "Error generating description: Invalid inputs"
 
         # Move inputs to the correct device and dtype
         inputs = {
@@ -195,16 +225,24 @@ def generate_florence_description(image, model, processor, is_object=False):
 
         # Post-process the generated text
         florence_description = processor.post_process_generation(
-            generated_text, task=task_prompt, image_size=(image.width, image.height)
+            generated_text,
+            task=get_task_prompt(is_object, is_anime, is_style),
+            image_size=(image.width, image.height),
         )
 
         if not florence_description:
-            florence_description = "No description generated"
+            return "No description generated"
 
-        return florence_description.get("<MORE_DETAILED_CAPTION>")
+        # Return the appropriate description based on the task
+        if is_object:
+            return florence_description.get("<OD>", "No object detection results")
+        elif is_anime:
+            return florence_description.get("<GENERATE_TAGS>", "No tags generated")
+        else:
+            return florence_description.get(
+                "<MORE_DETAILED_CAPTION>", "No detailed caption generated"
+            )
+
     except Exception as e:
-        import traceback
-
-        print(e)
-        print(traceback.format_exc())
-        return "Error generating description"
+        print(f"Error in generate_florence_description: {e}")
+        return f"Error generating description: {str(e)}"
