@@ -252,6 +252,7 @@ def analyze_image(
         progress.update(task, advance=1)
         return None
 
+
 class CaptionType(Enum):
     DETAILED = "<MORE_DETAILED_CAPTION>"
     OBJECT_DETECTION = "<OD>"
@@ -287,15 +288,12 @@ def generate_florence_description(
         # Get task prompt as per input flags
         task_prompt = get_task_prompt(is_object, is_anime, is_style)
 
-
         inputs = processor(text=task_prompt, images=image, return_tensors="pt")
         for key in inputs.keys():
             inputs[key] = inputs[key].to(device)
 
             if key == "pixel_values" and torch.cuda.is_available():
-                inputs[key] = inputs[key].to(
-                    torch.float16
-                )
+                inputs[key] = inputs[key].to(torch.float16)
 
         # Ensure that input_ids are Long
         if "input_ids" in inputs:

@@ -163,15 +163,14 @@ def smart_resize(img, size):
 
 
 def load_dataset(json_path):
-    
+
     if not os.path.exists(json_path):
         feedback_message(f"Dataset file not found at {json_path}", type="warning")
         return None
-    
-    with open(json_path, 'r') as f:
+
+    with open(json_path, "r") as f:
         return json.load(f)
 
 
 def get_image_count(dataset_path):
     return len(dataset_path)
-
