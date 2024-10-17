@@ -12,6 +12,7 @@ from .helpers import (
     create_output_directory,
     generate_caption_file,
     create_table,
+    feedback_message,
 )
 
 from .images import ImageProcessor
@@ -225,6 +226,7 @@ def process_directory(
     name: str,
     trigger: str = None,
     padding: int = DEFAULT_PADDING,
+    use_joycap: bool = False,
     is_anime: bool = False,
     is_object: bool = False,
     is_style: bool = False,
@@ -244,6 +246,13 @@ def process_directory(
     # print(f"Processing directory: {directory_path}")
     # output_dir = create_output_directory(directory_path)
     # print(f"Output directory: {output_dir}")
+
+    if use_joycap:
+        feedback_message(
+            """Joycap is currently in Alpha and may not work as expected. JoyCap also uses
+               a ton of vram and may crash your system. Please use with caution.""",
+            "warning",
+        )
 
     output_dir = create_output_directory(directory_path)
     image_files = [
@@ -273,7 +282,14 @@ def process_directory(
             # Generate and save the caption
             caption_image = f"{output_dir}/{name}_{index:0{padding}d}_{image_sizes[1]}{Path(filename).suffix}"
             caption = analyze_image(
-                caption_image, task, progress, trigger, is_anime, is_object, is_style
+                caption_image,
+                task,
+                progress,
+                trigger,
+                use_joycap,
+                is_anime,
+                is_object,
+                is_style,
             )
             if caption:
                 if generate_caption_file(output_caption_path, caption):
@@ -300,7 +316,11 @@ def process_directory(
                         "status": "Failed to generate caption",
                     }
                 )
-    create_dataset_from_images(output_dir, "dataset", "jsonl")
+                
+    datasets = ["jsonl", "hf_json", "json"]
+    for dataset in datasets:
+        create_dataset_from_images(output_dir, name, dataset)
+        
     display_results_table(results)
 
 
