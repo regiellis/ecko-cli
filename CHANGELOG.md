@@ -2,7 +2,10 @@
 
 ## All notable changes to this project will be documented in this file
 
-### [1.4.0] - 2024-09-30
+##  [1.4.1] - 2024-10-07
+- **Hotfix**: Update caption mode for JoyCaption, fix some typoes
+
+### [1.4.0] - 2024-10-07
 
 - **Caption Features**: Added JoyCaption Alpha to options for captioning. This is a new feature that allows for richer captions to be generated.
 - **Caption UI**: Added a new gradio UI for editing captions. This allows for more control over the captioning process.
