@@ -115,3 +115,4 @@ def load_environment_variables() -> None:
 
 load_environment_variables()
 os.environ[CAPTION_MODEL] = os.getenv(CAPTION_MODEL, "microsoft/Florence-2-large")
+

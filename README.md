@@ -9,6 +9,11 @@
 > [Huggingface Repo](https://huggingface.co/SmilingWolf/wd-eva02-large-tagger-v3/tree/main)
 
 > [!IMPORTANT]
+> This tools has the option to now use the JoyCap model for captioning images. You will need to have huggingface hub
+> installed to download the model and the tokenizer. Also JoyCap is a large model and will require a GPU to run with
+> a healthy amount of memory.
+
+> [!IMPORTANT]
 > This tool makes use of the `flash-attention` library, which has known to be problematic to install based on PyTorch > and CUDA versions. You may
 > need to install the dependencies manually if you encounter issues. The way to install flash-attention is to clone >  the repo and install the package with pip. This is the recommended way to install the package. You can also
 > install the package with pip, but you will need to clone the repo first
@@ -78,17 +83,21 @@ The application intelligently locates your `.env` file, accommodating various pl
 Once installed via pipx or pip:
 
 ```
-ecko-cli process-images /path/to/images watercolors --padding 4
+ecko process-images /path/to/images watercolors --padding 4
 ```
 ```
-ecko-cli process-images /path/to/images doors --is_object True
+ecko process-images /path/to/images doors --is_object True
 ```
 ```
-ecko-cli process-images /path/to/images doors --trigger WORD
+ecko process-images /path/to/images doors --trigger WORD
 ```
 ```
-ecko-cli create-jsonl /path/to/images [dataset]
+ecko create-jsonl /path/to/images [dataset]
 ```
+```
+ecko ui /path/to/images
+```
+
 
 
 ## Dependencies
@@ -108,6 +117,7 @@ This tool requires Python 3.11 or higher and has the following dependencies:
 "einops"
 "transformers"
 "timm"
+"torchvision"
 "huggingface_hub[cli]"
 ```
 

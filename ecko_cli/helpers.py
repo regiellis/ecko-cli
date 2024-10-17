@@ -2,6 +2,7 @@ import os
 import typer
 import errno
 import cv2
+import json
 from pathlib import Path
 from importlib import resources
 
@@ -21,6 +22,8 @@ __all__ = [
     "get_models_dir",
     "make_square",
     "smart_resize",
+    "load_dataset",
+    "get_image_count",
 ]
 
 
@@ -157,3 +160,18 @@ def smart_resize(img, size):
     elif img.shape[0] < size:
         img = cv2.resize(img, (size, size), interpolation=cv2.INTER_CUBIC)
     return img
+
+
+def load_dataset(json_path):
+    
+    if not os.path.exists(json_path):
+        feedback_message(f"Dataset file not found at {json_path}", type="warning")
+        return None
+    
+    with open(json_path, 'r') as f:
+        return json.load(f)
+
+
+def get_image_count(dataset_path):
+    return len(dataset_path)
+

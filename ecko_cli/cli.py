@@ -4,7 +4,11 @@ import os
 import json
 import csv
 import typer
+import gradio as gr
+from gradio.themes.base import Base
+from gradio.themes.utils import colors, fonts, sizes
 from pathlib import Path
+from PIL import Image
 from typing import List, Dict, Any
 import subprocess
 
@@ -12,7 +16,7 @@ from .helpers import (
     create_output_directory,
     generate_caption_file,
     create_table,
-    feedback_message,
+    feedback_message
 )
 
 from .images import ImageProcessor
@@ -46,7 +50,7 @@ $ pipx install ecko-cli (recommended)
 $ pipx install . (if you want to install it globally)
 $ pip install -e . (if you want to install it locally and poke around,
 make sure to create a virtual environment)
-$ ecko-cli [OPTIONS] [COMMAND] [ARGS]
+$ ecko [OPTIONS] [COMMAND] [ARGS]
 
 Options:
     process-images DIRECTORY BATCH_IMAGE_NAME [--trigger WORD] [--is_object] [--padding PADDING]
@@ -57,9 +61,10 @@ Options:
 
 Examples:
 
-$ ecko-cli process-images /path/to/images watercolors --padding 4
-$ ecko-cli process-images /path/to/images doors --is_object True
-$ ecko-cli create-jsonl /path/to/images [dataset]
+$ ecko process-images /path/to/images watercolors --padding 4
+$ ecko process-images /path/to/images doors --is_object True
+$ ecko create-jsonl /path/to/images [dataset]
+$ ecko ui /path/to/images
 
 """
 
@@ -74,6 +79,78 @@ console = Console()
 DEFAULT_PADDING = os.getenv("DEFAULT_PADDING", 4)
 
 ecko_cli.add_typer(tools_cli, name="tools", help="Tools for Ecko CLI")
+
+
+class PlaylogicTheme(Base):
+    def __init__(
+        self,
+        *,
+        primary_hue: colors.Color | str = colors.yellow,
+        secondary_hue: colors.Color | str = colors.yellow,
+        neutral_hue: colors.Color | str = colors.zinc,
+        spacing_size: sizes.Size | str = sizes.spacing_lg,
+        radius_size: sizes.Size | str = sizes.radius_none,
+        text_size: sizes.Size | str = sizes.text_md,
+        font: fonts.Font | str | list[fonts.Font | str] = (
+            fonts.GoogleFont("Inter"),
+            "ui-sans-serif",
+            "system-ui",
+            "sans-serif",
+        ),
+        font_mono: fonts.Font | str | list[fonts.Font | str] = (
+            fonts.GoogleFont("IBM Plex Mono"),
+            "ui-monospace",
+            "Consolas",
+            "monospace",
+        ),
+    ):
+        super().__init__(
+            primary_hue=primary_hue,
+            secondary_hue=secondary_hue,
+            neutral_hue=neutral_hue,
+            spacing_size=spacing_size,
+            radius_size=radius_size,
+            text_size=text_size,
+            font=font,
+            font_mono=font_mono,
+        )
+
+        self.name = "playlogic_theme"
+
+        self.set(
+            body_background_fill="*neutral_50",
+            body_background_fill_dark="*neutral_900",
+            body_text_color="*neutral_900",
+            body_text_color_dark="*neutral_100",
+            background_fill_primary="white",
+            background_fill_primary_dark="*neutral_800",
+            background_fill_secondary="*neutral_100",
+            background_fill_secondary_dark="*neutral_700",
+            border_color_primary="*neutral_200",
+            border_color_primary_dark="*neutral_700",
+            block_title_text_weight="600",
+            block_border_width="1px",
+            block_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            button_primary_background_fill="*primary_500",
+            button_primary_background_fill_hover="*primary_600",
+            button_primary_text_color="white",
+            button_secondary_background_fill="white",
+            button_secondary_background_fill_hover="*neutral_100",
+            button_secondary_text_color="*neutral_800",
+            button_secondary_border_color="*neutral_200",
+            #button_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            block_label_background_fill="*neutral_50",
+            block_label_background_fill_dark="*neutral_800",
+            input_background_fill="white",
+            input_background_fill_dark="stone",
+            input_border_color="*primary_400",
+            input_border_color_dark="*primary_400",
+            input_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+            slider_color="*primary_500",
+            slider_color_dark="*primary_400",
+        )
+
+playlogic = PlaylogicTheme()
 
 
 def create_dataset_from_images(
@@ -179,6 +256,101 @@ def display_results_table(results: List[Dict[str, str]]) -> None:
         )
 
     console.print(results_table)
+
+
+def serve(dataset_path):
+    training_data_path = os.path.join(dataset_path, 'training_data')
+    dataset_file = os.path.join(training_data_path, 'dataset.json')
+    
+    if not os.path.exists(dataset_file):
+        feedback_message("Dataset not found", "error")
+        raise typer.Exit()
+    
+    with open(dataset_file, 'r') as f:
+        dataset = json.load(f)
+    
+    image_count = len(dataset)
+
+
+    def load_image_and_caption(index):
+        if index is None or not (0 <= index < image_count):
+            return None, "No image selected", None
+        item = dataset[index]
+        image_path = os.path.join(training_data_path, item['image'])
+        return Image.open(image_path), item['text'], index
+
+
+    def update_caption(index, new_caption):
+        if index is None or not (0 <= index < image_count):
+            return "No image selected for update"
+        
+        dataset[index]['text'] = new_caption
+        
+        # Update all dataset files
+        for ext in ['json', 'jsonl', 'csv']:
+            file_path = os.path.join(training_data_path, f'dataset.{ext}')
+            if os.path.exists(file_path):
+                if ext == 'json':
+                    with open(file_path, 'w') as f:
+                        json.dump(dataset, f, indent=2)
+                elif ext == 'jsonl':
+                    with open(file_path, 'w') as f:
+                        for item in dataset:
+                            f.write(json.dumps(item) + '\n')
+                elif ext == 'csv':
+                    with open(file_path, 'w', newline='') as f:
+                        writer = csv.DictWriter(f, fieldnames=['image', 'text'])
+                        writer.writeheader()
+                        writer.writerows(dataset)
+        
+        # Update the corresponding .txt file
+        image_filename = dataset[index]['image']
+        txt_filename = os.path.splitext(image_filename)[0] + '.txt'
+        txt_path = os.path.join(training_data_path, txt_filename)
+        with open(txt_path, 'w') as f:
+            f.write(new_caption)
+        
+        return f"Caption updated for image {txt_filename[:-4]}"
+
+    def get_image_paths():
+        return [os.path.join(training_data_path, item['image']) for item in dataset]
+
+    with gr.Blocks(theme=playlogic) as demo:
+        gr.Markdown("## ECKO Editor")
+
+        with gr.Row():
+            with gr.Column(scale=2):
+                image_output = gr.Image(type="pil", label="Selected Image")
+                caption_input = gr.Textbox(label="Caption", lines=4)
+                update_button = gr.Button("Update Caption")
+                update_status = gr.Markdown("### Update status will appear here")
+        
+        with gr.Row(): 
+            with gr.Column(scale=1):
+                gallery = gr.Gallery(value=get_image_paths(), columns=8, rows=4, label="Image Gallery", allow_preview=False)
+                gr.Markdown(f"### Total Images: {image_count}")
+        
+        selected_index = gr.State(None)
+        
+        def select_image(evt: gr.SelectData):
+            return evt.index
+        
+        gallery.select(select_image, outputs=[selected_index])
+        selected_index.change(load_image_and_caption, inputs=[selected_index], outputs=[image_output, caption_input, selected_index])
+        
+        update_button.click(
+            update_caption,
+            inputs=[selected_index, caption_input],
+            outputs=[update_status]
+        )
+
+    demo.launch(server_name="0.0.0.0")
+
+
+@ecko_cli.command()
+def ui(dataset_path: str = typer.Argument(..., help="Path to the directory containing dataset.json and images")):
+    """Serve a Gradio interface for viewing image captions"""
+    serve(dataset_path)
 
 
 @ecko_cli.command(
@@ -317,9 +489,9 @@ def process_directory(
                     }
                 )
                 
-    datasets = ["jsonl", "hf_json", "json"]
+    datasets = ["jsonl", "json"]
     for dataset in datasets:
-        create_dataset_from_images(output_dir, name, dataset)
+        create_dataset_from_images(output_dir, "dataset", dataset)
         
     display_results_table(results)
 

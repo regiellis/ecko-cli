@@ -2,6 +2,11 @@
 
 ## All notable changes to this project will be documented in this file
 
+### [1.4.0] - 2024-09-30
+
+- **Caption Features**: Added Joycap Alpha to options for captioning. This is a new feature that allows for richer captions to be generated.
+- **Caption UI**: Added a new gradio UI for editing captions. This allows for more control over the captioning process.
+
 ### [1.3.0] - 2024-09-30
 
 - **Caption Features**: New caption options and the abailty to install flash-attn from the command line.

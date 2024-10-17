@@ -12,5 +12,7 @@
 "opencv-python"
 "flash-attn --no-build-isolation"
 "timm"
-"transformers"
+"transformers",
+"torchvision",
+"gradio"
 "huggingface_hub[cli]"
