@@ -76,7 +76,7 @@ pip install .
 ## Configuration
 
 > [!IMPORTANT]
-> Before using the tool, It's required to set up a `.env` file in the parent directory of the script or your home user dir [windows] or `$HOME/.config/civitai-cli-manager/.env`
+> Before using the tool, It's required to set up a `.env` file in the parent directory of the script or your home user dir [windows] or `$HOME/.config/ecko-cli-itsjustregi/.env`
 
 The application intelligently locates your `.env` file, accommodating various platforms like Windows and Linux, or defaulting to the current directory.
 

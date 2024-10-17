@@ -179,7 +179,7 @@ def analyze_image(
 ) -> Optional[str]:
     try:
         if use_joycap:
-            prompt = "Write a long descriptive caption for this image in a formal tone."
+            prompt = "Write a 256 stable diffusion prompt for this image."
             caption = generate_joycap_caption(image_path, prompt)
         else:
 
