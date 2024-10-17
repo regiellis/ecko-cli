@@ -9,9 +9,11 @@
 > [Huggingface Repo](https://huggingface.co/SmilingWolf/wd-eva02-large-tagger-v3/tree/main)
 
 > [!IMPORTANT]
-> This tools has the option to now use the JoyCap model for captioning images. You will need to have huggingface hub
-> installed to download the model and the tokenizer. Also JoyCap is a large model and will require a GPU to run with
+> This tools has the option to now use the JoyCaption model for captioning images. You will need to have huggingface hub
+> installed to download the model and the tokenizer. Also JoyCaption is a large model and will require a GPU with
 > a healthy amount of memory.
+> [Demo on Huggingface](https://huggingface.co/spaces/fancyfeast/joy-caption-alpha-two) //
+> [Huggingface Repo](https://huggingface.co/fancyfeast/llama-joycaption-alpha-two-hf-llava)
 
 > [!IMPORTANT]
 > This tool makes use of the `flash-attention` library, which has known to be problematic to install based on PyTorch > and CUDA versions. You may
@@ -84,6 +86,9 @@ Once installed via pipx or pip:
 
 ```
 ecko process-images /path/to/images watercolors --padding 4
+```
+```
+ecko process-images --use_joy_cap /path/to/images watercolors --padding 4
 ```
 ```
 ecko process-images /path/to/images doors --is_object True

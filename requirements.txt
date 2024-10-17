@@ -13,6 +13,5 @@
 "flash-attn --no-build-isolation"
 "timm"
 "transformers",
-"torchvision",
 "gradio"
 "huggingface_hub[cli]"
