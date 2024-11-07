@@ -2,6 +2,10 @@
 
 ## All notable changes to this project will be documented in this file
 
+
+##  [1.5.0] - 2024-10-07
+- **Model Update**: replaced Florence with a new model, MiaoshouAI/Florence-2-base-PromptGen-v2.0. This model is fine-tune of Florence2
+
 ##  [1.4.1] - 2024-10-07
 - **Hotfix**: Update caption mode for JoyCaption, fix some typoes
 

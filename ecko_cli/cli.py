@@ -518,3 +518,13 @@ def install_flash_attention():
         "pip install flash-attn --no-build-isolation",
         shell=True,
     )
+    
+@tools_cli.command()
+def install_models():
+    """
+    Install required models
+    """
+    subprocess.run(
+        "hf download MiaoshouAI/Florence-2-base-PromptGen-v2.0",
+        shell=True,
+    )

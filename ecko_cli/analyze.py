@@ -26,7 +26,7 @@ from .helpers import (
     smart_resize,
 )
 
-CAPTION_MODEL = "microsoft/Florence-2-large"
+CAPTION_MODEL = "MiaoshouAI/Florence-2-base-PromptGen-v2.0" #"microsoft/Florence-2-large" #"MiaoshouAI/Florence-2-large-PromptGen-v2.0" 
 JOYCAP_MODEL = "fancyfeast/llama-joycaption-alpha-two-hf-llava"
 IMAGE_SIZE_JOYCAP = (384, 384)
 
