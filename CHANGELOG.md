@@ -2,8 +2,10 @@
 
 ## All notable changes to this project will be documented in this file
 
-
-##  [1.5.0] - 2024-10-07
+##  [1.65.0] - 2024-11-11
+- **Feature**: Removed a lot of dependencies and updated the model to use the latest version of the model
+- 
+##  [1.5.0] - 2024-11-07
 - **Model Update**: replaced Florence with a new model, MiaoshouAI/Florence-2-base-PromptGen-v2.0. This model is fine-tune of Florence2
 
 ##  [1.4.1] - 2024-10-07

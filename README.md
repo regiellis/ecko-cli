@@ -1,13 +1,5 @@
 # ecko-cli
 
-
-> [!IMPORTANT]
-> This tool makes use of the `SmilingWolf/wd-eva02-large-tagger-v3` library, which you will need to download 
-> and place in the `models` directory inside the `ecko_cli` folder of this project. Make sure to not rename
-> the file as the script will be looking for `model.onnx`.
-> 
-> [Huggingface Repo](https://huggingface.co/SmilingWolf/wd-eva02-large-tagger-v3/tree/main)
-
 > [!IMPORTANT]
 > This tools has the option to now use the JoyCaption model for captioning images. You will need to have huggingface hub
 > installed to download the model and the tokenizer. Also JoyCaption is a large model and will require a GPU with
@@ -45,7 +37,7 @@
 ## Overview
 
 **ecko-cli** is a simple CLI tool that streamlines the process of processingimages in a directory, generating captions, and saving them as text files.
-Additionally, it provides functionalities to create a JSONL file from images in the directory you specify. Images will be captioned using the Microsoft Florence-2-large model and the ONNX Runtime engine. Images are resized to multiple sizes for better captioning results. [1024, 768, 672, 512]. The WD14 model is used for captioning all images based on a modified version of the selected tags it was trained on.
+Additionally, it provides functionalities to create a JSONL file from images in the directory you specify. Images will be captioned using the MiaoshouAI/Florence-2-base-PromptGen-v2.0 model. Images are resized to multiple sizes for better captioning results. [1024, 768, 672, 512]. 
 
 
 ![screenshot](screen.png)
@@ -114,9 +106,6 @@ This tool requires Python 3.11 or higher and has the following dependencies:
 "rich",
 "shellingham",
 "python-dotenv",
-"onnxruntime-gpu",
-"numpy",
-"pandas",
 "torch",
 "pillow",
 "einops"

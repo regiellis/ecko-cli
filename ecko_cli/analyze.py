@@ -11,9 +11,6 @@ from PIL import Image
 
 import torch
 import torchvision.transforms.functional as TVF
-import numpy as np
-import onnxruntime as ort
-import pandas as pd
 import warnings
 
 from rich.progress import Progress
@@ -21,9 +18,6 @@ from enum import Enum
 
 from .helpers import (
     feedback_message,
-    get_models_dir,
-    make_square,
-    smart_resize,
 )
 
 CAPTION_MODEL = "MiaoshouAI/Florence-2-base-PromptGen-v2.0" #"microsoft/Florence-2-large" #"MiaoshouAI/Florence-2-large-PromptGen-v2.0" 
@@ -31,9 +25,13 @@ JOYCAP_MODEL = "fancyfeast/llama-joycaption-alpha-two-hf-llava"
 IMAGE_SIZE_JOYCAP = (384, 384)
 
 # Suppress the FutureWarning
+# TODO: Remove this once the transformers library is updated to 4.15.0 
+# TODO: Remove this if timm is imported correctly by the transformers library
 warnings.filterwarnings(
     "ignore", category=FutureWarning, module="transformers.tokenization_utils_base"
 )
+warnings.filterwarnings("ignore", category=FutureWarning, module="timm")
+warnings.filterwarnings("ignore", message=".*Florence2LanguageForConditionalGeneration has generative capabilities.*")
 
 
 def delete_training_image(training_image: str) -> None:
@@ -61,20 +59,7 @@ def load_models():
     ).to(device)
     processor = AutoProcessor.from_pretrained(CAPTION_MODEL, trust_remote_code=True)
 
-    models_dir = get_models_dir()
-    model_path = os.path.join(models_dir, "model.onnx")
-
-    # ONNX Runtime providers
-    providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
-    try:
-        ort_session = ort.InferenceSession(model_path, providers=providers)
-    except Exception as e:
-        print(f"Error creating ONNX session: {e}")
-        ort_session = ort.InferenceSession(
-            model_path, providers=["CPUExecutionProvider"]
-        )
-
-    return model, processor, ort_session
+    return model, processor
 
 
 def preprocess_image_for_joycap(image_path: str) -> torch.Tensor:
@@ -173,6 +158,9 @@ def analyze_image(
     progress: Progress,
     trigger,
     use_joycap,
+    detailed,
+    add_tags,
+    detailed_tags,
     is_anime,
     is_object,
     is_style,
@@ -183,64 +171,59 @@ def analyze_image(
             caption = generate_joycap_caption(image_path, prompt)
         else:
 
-            model, processor, _ = load_models()
+            model, processor = load_models()
 
             image = Image.open(image_path)
-
-            # Generate Image description using Florence model
-            caption = generate_florence_description(
-                image, model, processor, is_object, is_anime, is_style
-            )
-
-        # WD14 tagging
-        _, _, ort_session = load_models()
-
-        # Get model input details
-        input_shape = ort_session.get_inputs()[0].shape
-        input_name = ort_session.get_inputs()[0].name
-        height = input_shape[2]
-
-        # Load and preprocess the image for WD14
-        image = Image.open(image_path)  # Reload image for WD14 tagging
-        image_np = np.array(image.convert("RGB"))
-        image_np = image_np[:, :, ::-1]  # RGB to BGR
-
-        image_np = make_square(image_np, height)
-        image_np = smart_resize(image_np, height)
-        image_np = image_np.astype(np.float32)
-        image_np = np.expand_dims(image_np, 0)
-
-        # Run inference
-        ort_inputs = {input_name: image_np}
-        confidence = ort_session.run(None, ort_inputs)[0]
-
-        # Load tags from CSV
-        models_dir = get_models_dir()
-        if is_anime:
-            csv_path = os.path.join(models_dir, "anime.csv")
-        else:
-            csv_path = os.path.join(models_dir, "realistic.csv")
-
-        df_tags = pd.read_csv(csv_path)
-
-        # Get probabilities and create tag-confidence pairs
-        tag_confidence = list(zip(df_tags["name"], confidence[0]))
-
-        # Filter and sort tags
-        threshold = 0.55
-        filtered_tags = [
-            (tag, conf)
-            for tag, conf in tag_confidence
-            if conf > threshold
-            and df_tags.loc[df_tags["name"] == tag, "category"].iloc[0] != 9
-        ]
-
-        # Keep track of all tags
-        wd14_tags = [tag for tag, _ in filtered_tags]  # Collect filtered tags
-
+            
+            caption_options_default = {
+                "detailed": False,
+                "add_tags": False,
+                "detailed_tags": False,
+                "is_anime": False,
+                "is_object": False,
+                "is_style": False,
+            }
+            caption_options_detailed = caption_options_default.copy()
+            caption_options_detailed["detailed"] = True
+            
+            caption_options_add_tags = caption_options_default.copy()
+            caption_options_add_tags["add_tags"] = True
+            
+            caption_options_detailed_tags = caption_options_default.copy()
+            caption_options_detailed_tags["detailed_tags"] = True
+                
+            caption_options_anime = caption_options_default.copy()
+            caption_options_anime["is_anime"] = True
+            
+            caption_options_object = caption_options_default.copy()
+            caption_options_object["is_object"] = True
+            
+            caption_options_style = caption_options_default.copy()
+            caption_options_style["is_style"] = True
+            
+            def get_image_caption(image, model, processor, caption_options):
+                return generate_florence_description(
+                    image, model, processor, **caption_options
+                )
+                
+            if detailed:
+                caption = get_image_caption(image, model, processor, caption_options_detailed)
+            elif add_tags:
+                caption = get_image_caption(image, model, processor, caption_options_add_tags)
+            elif detailed_tags:
+                caption = get_image_caption(image, model, processor, caption_options_detailed_tags)
+            elif is_anime:
+                caption = get_image_caption(image, model, processor, caption_options_anime)
+            elif is_object:
+                caption = get_image_caption(image, model, processor, caption_options_object)
+            elif is_style:
+                caption = get_image_caption(image, model, processor, caption_options_style)
+            else:
+                caption = get_image_caption(image, model, processor, caption_options_default)
+            
         # final output
         trigger_word = f"{trigger} " if trigger else ""
-        result = f"{trigger_word}{caption} {', '.join(wd14_tags)}"
+        result = f"{trigger_word}{caption}"
 
         delete_training_image(image_path)
 
@@ -254,15 +237,24 @@ def analyze_image(
 
 
 class CaptionType(Enum):
-    DETAILED = "<MORE_DETAILED_CAPTION>"
+    DETAILED = "<DETAILED_CAPTION>"
+    MORE_DETAILED_CAPTION = "<MORE_DETAILED_CAPTION>"
     OBJECT_DETECTION = "<OD>"
     GENERATE_TAGS = "<GENERATE_TAGS>"
     CAPTION = "<CAPTION>"
+    MIXED = "<MIXED_CAPTION>"
+    MIXED_PLUS = "<MIXED_CAPTION_PLUS>"
 
 
-def get_task_prompt(is_object: bool, is_anime: bool, is_style: bool) -> str:
+def get_task_prompt(detailed: bool, add_tags: bool, detailed_tags: bool, is_object: bool, is_anime: bool, is_style: bool) -> str:
     if is_object:
         return CaptionType.OBJECT_DETECTION.value
+    elif detailed:
+        return CaptionType.MORE_DETAILED_CAPTION.value
+    elif add_tags:
+        return CaptionType.MIXED.value
+    elif detailed_tags:
+        return CaptionType.MIXED_PLUS.value
     elif is_anime:
         return CaptionType.GENERATE_TAGS.value
     elif is_style:
@@ -275,20 +267,27 @@ def generate_florence_description(
     image: Image.Image,
     model: AutoModelForCausalLM,
     processor,
+    detailed = False,
+    add_tags=False,
+    detailed_tags=False,
     is_anime=False,
     is_object=False,
     is_style=False,
 ) -> str:
     """
-    Generate a description of the image using the Florence model.
+    Generate a description of the image using MiaoshouAI/Florence-2-base-PromptGen-v2.0.
     """
     try:
         device = next(model.parameters()).device
+        #image = image.resize((587, 587), Image.LANCZOS)
+        
 
         # Get task prompt as per input flags
-        task_prompt = get_task_prompt(is_object, is_anime, is_style)
+        task_prompt = get_task_prompt(detailed, add_tags, detailed_tags, is_object, is_anime, is_style)
+        
 
         inputs = processor(text=task_prompt, images=image, return_tensors="pt")
+
         for key in inputs.keys():
             inputs[key] = inputs[key].to(device)
 

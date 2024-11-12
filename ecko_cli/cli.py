@@ -315,7 +315,7 @@ def serve(dataset_path):
         return [os.path.join(training_data_path, item["image"]) for item in dataset]
 
     with gr.Blocks(theme=playlogic) as demo:
-        gr.Markdown("## ECKO Editor")
+        gr.Markdown("## Caption Editor")
 
         with gr.Row():
             with gr.Column(scale=2):
@@ -412,6 +412,9 @@ def process_directory(
     trigger: str = None,
     padding: int = DEFAULT_PADDING,
     use_joycap: bool = False,
+    detailed: bool = False,
+    add_tags: bool = False,
+    detailed_tags: bool = False,
     is_anime: bool = False,
     is_object: bool = False,
     is_style: bool = False,
@@ -472,6 +475,9 @@ def process_directory(
                 progress,
                 trigger,
                 use_joycap,
+                detailed,
+                add_tags,
+                detailed_tags,
                 is_anime,
                 is_object,
                 is_style,
@@ -510,7 +516,7 @@ def process_directory(
 
 
 @tools_cli.command()
-def install_flash_attention():
+def install_flash_attn():
     """
     Install flash-attention package
     """

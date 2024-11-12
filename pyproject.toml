@@ -24,16 +24,14 @@ dependencies = [
     "rich",
     "shellingham",
     "python-dotenv",
-    "onnxruntime-gpu",
-    "numpy",
-    "pandas",
     "torch",
-    "torchvision",
     "pillow",
     "einops",
+    "torchvision",
     "opencv-python",
-    "transformers",
     "timm",
+    "transformers",
+    "gradio",
     "huggingface_hub[cli]"
 ]
 
