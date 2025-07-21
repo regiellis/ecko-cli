@@ -142,6 +142,18 @@ def test_process_images_output(runner, temp_dir):
     jsonl_file = os.path.join(temp_dir, "dataset.jsonl")
     assert os.path.exists(jsonl_file), f"Expected JSONL file not found: {jsonl_file}"
 
+    # Validate JSONL contents
+    entries = []
+    with open(jsonl_file, "r") as f:
+        for line in f:
+            if line.strip():
+                entries.append(json.loads(line))
+
+    assert len(entries) == num_images
+    for entry in entries:
+        for key in ["image", "text", "mask_path"]:
+            assert key in entry
+
     # Print the final contents of the output directory
     print("\nFinal contents of output directory:")
     for file in os.listdir(temp_dir):
